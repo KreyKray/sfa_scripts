@@ -49,7 +49,33 @@ class SceneFile(object):
             path: the path to the scene file if successful"""
         try:
             return pmc.system.saveAs(self.path)
-        except RuntimeError as err:
+        except RuntimeError :
             log.warning("missing directory in path.  Creating directories...")
             self.folder_path.makedirs_p()
             return pmc.system.saveAs(self.path)
+
+    def next_avail_ver(self):
+        """return the next available version number in the folder."""
+        pattern = "{descriptor}_{task}_v*(ext)".format(descriptor=self.descriptor, task=self.task,
+                                                       ext=self.ext)
+        matching_scenefiles = []
+        for file_ in self.folder_path.files():
+            if file_.name.fnmatch(pattern):
+                matching_scenefiles.append(file_)
+                if not matching_scenefiles:
+                    return 1
+
+        matching_scenefiles.sort(reverse=True)
+        latest_scenefile = matching_scenefiles[0]
+        latest_ver_num = int(latest_scenefile.split("_v")[-1])
+        return latest_ver_num + 1
+
+    def increment_save(self):
+        """increments the version and saves the same file.
+
+        if the existing version of a file already exist it should increment from the largest number
+        returns
+        path the path to the scene file if successful
+        """
+        self.ver = self.next_avail_ver()
+        self.save()
